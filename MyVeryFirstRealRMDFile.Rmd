@@ -1,0 +1,179 @@
+---
+title: "Activity 8: First RMD"
+author: "Ethan Sullivan"
+date: "`r Sys.Date()`"
+output:
+  pdf_document: default
+  always_allow_html: yes
+  html_notebook: default
+---
+
+# Activity #3: Collatz Conjecture
+
+The Collatz Conjecture is a famous mathematical problem that asks if any positive integer can eventually reach the value 1 by repeating two functions. My professor asked for a distribution of the stopping times for the first 10,000 integers using the standard functions n / 2 for even numbers and 3n + 1 for odd numbers. The term stopping times refers to the amount of times the functions above were repeated until the number that started the sequence was transformed to the value 1.
+
+The graph below visualizes the stopping times for each integer. Although the problem is too big to display every integer until 10,000, it's important to note that after 200 they become increasingly less frequent. Additionally, there is a spike in stopping times after the first few integers, where they have an overall downwards trend after around 50.
+
+```{r Collatz_Conjecture, message=FALSE, warning=FALSE}
+
+operation <- function(n){
+    if (n == 1) {
+        return (0)
+    } else {
+      #if even, divide by 2. Add to stopping time
+      if (n %% 2 == 0) {
+        1 + operation(n / 2)
+      } else if(n %% 2 == 1){
+        #if odd, multiply by 3, add 1. Add to stopping time
+            return (1 + operation((n * 3) + 1))
+      }
+    }
+}
+#creates distribution for 10,000 numbers
+integers <- sapply(1:10000, operation, simplify = TRUE, USE.NAMES = TRUE)
+hist(integers)
+
+
+
+
+
+
+```
+
+# Activity #5: Price of Diamonds Data Visualization
+
+Using the diamonds data set, we created visualizations to gain some insights from this large data frame. The graph below compares the prices for each clarity type and color for each diamond, group by the type of cut they are classified by. Unsurprisingly, the type of cut severely impacts the price of a diamond. Using the graph, one can also figure that diamond prices are fairly standard across the board, with the similar patterns on clarity pricing.
+
+The first graph is fine, although broad. The next graph drills down a little more, selecting information only on the three most consistently high priced clarities: SI1, SI2, and VS2, and recording them into box plots. . The graph is also grouped by the higher quality cuts: Very Good, Premium, and Ideal. This way, the audience can notice more subtle details in the data that would otherwise be missed from the first graph. The difference color has on price variability is much more evident when shown in these box plots.
+
+```{r Diamond_Visualization, message=FALSE, warning=FALSE}
+library(knitr)
+library(kableExtra)
+library(dplyr)
+library(janitor)
+library(ggplot2)
+ggplot(diamonds) +
+#x axis is clarity, y axis is price, colors represent colors of diamonds
+aes(x = clarity, y = price, colour = color) +
+geom_col(fill = "#112446") +
+scale_color_hue(direction = 1) +
+#Title for the graph
+labs(title = "Diamond Price Comparison") +
+theme_bw() +
+#facet cut groups the diamonds into the cut type, better readability
+facet_grid(vars(), vars(cut))
+
+
+
+diamonds %>%
+  #excluding Good and Fair cuts
+ filter(!(cut %in% c("Good", "Fair"))) %>%
+ filter(clarity %in% c("SI2", "SI1", "VS2")) %>%
+ ggplot() +
+  aes(x = cut, y = price, colour = color) +
+  geom_boxplot(fill = "#112446") +
+  scale_color_hue(direction = 1) +
+  labs(
+    x = "Cut",
+    y = "Price",
+    title = "Summary of Diamond Prices",
+    subtitle = "Summary for the cuts: Very Good, Premium, Ideal; Clarities: S12, SI1, VS2"
+  ) +
+  theme_gray() +
+  theme(
+    plot.title = element_text(size = 25L,
+    face = "bold",
+    hjust = 0.5),
+    plot.subtitle = element_text(size = 13L),
+    axis.title.y = element_text(size = 16L,
+    face = "bold"),
+    axis.title.x = element_text(size = 16L,
+    face = "bold")
+  ) +
+  facet_wrap(vars(clarity))
+
+
+```
+
+# Activity #7: Price of Diamonds Summary Table
+
+This summary table on diamond prices by cut type continues the last graph in a more tabular form with some basic summary statistics. Despite its appearance, the results in the summary table can be more surprising than those seen in the visualizations. For instance, fair cut diamonds are more expensive than all the other cuts until the third quintile, and has the highest median price. In reality, Ideal cut diamonds are usually the cheaper option of the types. This all may be because of the high count that the Ideal cut has, creating less demand for the product.
+
+```{r Diamond_Table, message=FALSE, warning=FALSE}
+#summary table --------------------------------------------------------------------------------------
+diamonds %>%
+  group_by(cut) %>%
+  select(price) %>%
+  summarize(
+    Count = n(),
+    #creates quintiles, probs dictates how much of data is being sectioned
+    Quintile_1 = format(quantile(price, probs = 0.20, na.rm=TRUE), digits = 3),
+    Quintile_2 = quantile(price, probs = 0.40, na.rm=TRUE),
+    Quintile_3 = quantile(price, probs = 0.60, na.rm=TRUE),
+    Quintile_4 = quantile(price, probs = 0.80, na.rm=TRUE),
+    Min = min(price, na.rm=TRUE),
+    Max = max(price, na.rm=TRUE),
+    Median = median(price, na.rm=TRUE),
+    Mean = format(mean(price, na.rm=TRUE), digits = 3),
+    SD = format(sd(price), digits = 3),
+  ) %>%
+  kable(
+    caption = "Diamond Price Summary By Cut",
+    booktabs = TRUE,
+    align = c("l", rep("c", 6))
+  ) %>%
+  kableExtra::kable_styling(
+    #creates striped aesthetic 
+    bootstrap_options = c("striped", "condensed"),
+    font_size = 16,
+  )
+
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Summary of Stat 184
+
+Over the past few weeks I have learned quite a bit about the R programming language. Despite knowing some other languages, I think R has the most versatility. The following is a quick summary on my R education.
+
+An early yet highly important lesson came from Tufte and Kosslyn, who laid the groundwork for what good visualizations look like. Rules that dictate what makes and breaks a visualization, like chart junk, misleading angles, and distracting objects, otherwise known as ducks, help ensure that any visualization I make is clear and concise.
+
+The versatility of R comes from its many packages. Some important packages and their purposes are:
+
+-   DPLYR
+
+    -   data manipulation
+
+    -   piping with %\>%, connects commands
+
+-   ggplot2
+
+    -   graph creation
+
+    -   geom\_ to create different graph types from histograms to boxplots
+
+-   esquisse
+
+    -   online userface to help create ggplot graphs (super useful!)
+
+    -   esquisse::esquisser()
+
+-   janitor
+
+    -   cleans data, creates tabulation tables
+
+-   knitr
+
+    -   creates neat tables, useful for reproducible documents
+
+    -   kableExtra::kable_styling(
+
+Perhaps my favorite subject is what we are currently learning now: R Markdown. I love the simple structure of the files and the compatibility with other coding languages. It's a great tool for collaborating with others and creating a presentable product. I hope to learn much more.
+
+If anything, the ultimate lesson is to PLAN.
+
+```{r, include=FALSE}
+options(tinytex.verbose = TRUE)
+```

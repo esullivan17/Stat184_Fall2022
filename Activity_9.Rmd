@@ -1,0 +1,172 @@
+---
+title: 'Activity #9'
+author: "Ethan Sullivan"
+date: "`r Sys.Date()`"
+output: 
+  pdf_document: default
+  html_notebook: default
+---
+
+```{r library, message=FALSE, warning=FALSE, echo=FALSE}
+library(dplyr)
+library(rvest)
+library(readr)
+library(tidyr)
+library(ggplot2)
+
+```
+
+```{r Web_Scraping, message=FALSE, warning=FALSE, echo=FALSE}
+
+#Scraping data from ESPN summary pages for men's 100m dash times for olympic summer games 2012, 2016, 2020. 
+
+
+
+times_2020 <- read_html(
+  x = "https://www.espn.com/olympics/summer/2020/results/_/discipline/3/event/256"
+)  %>%
+  html_elements(css = "table") %>%
+  html_table()
+
+
+
+times_2016 <- read_html(
+  x = "https://www.espn.com/olympics/summer/2016/results/_/discipline/3/event/256"
+)  %>%
+  html_elements(css = "table") %>%
+  html_table()
+
+
+
+
+times_2012 <- read_html(
+  x = "https://www.espn.com/olympics/summer/2012/results/_/event/256/discipline/3"
+)  %>%
+  html_elements(css = "table") %>%
+  html_table()
+
+
+
+
+
+
+```
+
+```{r Cleaning_2020, message=FALSE, warning=FALSE, echo=FALSE}
+
+#After loading the data into data frames, save the data frame into an object and prepare for visualization. 
+
+df_2020 <- times_2020[[1]]
+
+#Removes the first line as it contains uneccessary information.
+df_2020 <- df_2020[-1,]
+
+#fills in first, second, and third place, as the website contains medal symbols
+df_2020[1,1] <- "1"
+df_2020[2,1] <- "2"
+df_2020[3,1] <- "3"
+
+#rename the columns and adds a new column containing the year the time was recorded
+names(df_2020) <- c("Place", "Country", "Name", "Time")
+df_2020$Year <- "2020"
+
+#filter the times for those of only the US, Jamaica, Russia, and China. Save the refined data frame into a new object for later use
+clean_2020 <- df_2020 %>% 
+  filter(Country %in% c("USA", "JAM", "RSA", "CHN"))
+
+
+
+```
+
+```{r Cleaning_2016, message=FALSE, warning=FALSE, echo=FALSE}
+
+#Repeat process from Cleaning_2020
+
+df_2016 <- times_2016[[1]]
+df_2016 <- df_2016[-1,]
+df_2016[1,1] <- "1"
+df_2016[2,1] <- "2"
+df_2016[3,1] <- "3"
+
+
+names(df_2016) <- c("Place", "Country", "Name", "Time")
+df_2016$Year <- "2016"
+
+clean_2016 <- df_2016 %>% 
+  filter(Country %in% c("USA", "JAM", "RSA", "CHN"))
+
+
+```
+
+```{r Cleaning_2012, message=FALSE, warning=FALSE, echo=FALSE}
+
+#Repeat process from Cleaning_2020 & Cleaning_2016
+
+df_2012 <- times_2012[[1]]
+df_2012 <- df_2012[-1,]
+df_2012[1,1] <- "1"
+df_2012[2,1] <- "2"
+df_2012[3,1] <- "3"
+
+
+names(df_2012) <- c("Place", "Country", "Name", "Time")
+df_2012$Year <- "2012"
+
+clean_2012 <- df_2012 %>% 
+  filter(Country %in% c("USA", "JAM", "RSA", "CHN"))
+
+
+```
+
+```{r df_Combine, message=FALSE, warning=FALSE, echo=FALSE}
+
+#Take the refined data frames and add the collective rows from each year into a combined data frame for visualization. Final cleaning edits 
+
+espnCombined <- bind_rows(clean_2020,clean_2016, clean_2012)
+
+#removing disqualified time and extreme outlier; edit disrupted data
+espnCombined <- espnCombined[-12,]
+espnCombined <- espnCombined[-28,]
+espnCombined[23,4] = "9.63"
+
+#trasnform all data in Time column into numeric type
+espnCombined$Time <- as.numeric(as.character(espnCombined$Time))
+
+
+
+```
+
+```{r visualization, message=FALSE, warning=FALSE, echo=FALSE}
+
+#The intent is to showcase the progression of 100m dash times for China, Jamaica, Russia, and the United States at the Olympic games from 2012 to 2020. 
+
+
+ggplot(espnCombined)+
+  geom_point(aes(x = Country,y = Time, color = Country, shape = Country), size = 3)+
+  #vector represents code values for symbols used on graph
+  scale_shape_manual(values = c(16, 15, 17, 18)) +
+  
+  #editing y axis to 0.05 second intervals
+  scale_y_continuous(breaks=seq(9,11,0.05))+
+  facet_grid(vars(), vars(Year))+
+  
+  #editing axis and title information
+  labs(
+    title = "Men's 100m Dash Olympic Times 2012-2020",
+    caption = "(Each point represents an individual's sprint time from China, Jamaica, Russia, and the United States respectively)",
+    x = "Country",
+    y = "Time (in seconds)"
+  ) +
+  theme(
+    plot.title = element_text(size = 18L,face = "bold"),
+    plot.caption = element_text(size = 8),
+    legend.title = element_text(face = "bold"),
+    axis.title.y = element_text(size = 16L,face = "bold"),
+    axis.title.x = element_text(size = 16,face = "bold")
+  )
+
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
